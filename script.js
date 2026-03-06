@@ -85,6 +85,7 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
   let boardY = 0;
   let boardSize = 0;
   let pieceSize = 0;
+  let tabSize = 0;
 
   let pieces = [];
   let draggingPiece = null;
@@ -102,8 +103,9 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
     w = canvas.width;
     h = canvas.height;
 
-    boardSize = Math.min(w * 0.58, h * 0.58);
+    boardSize = Math.min(w * 0.56, h * 0.56);
     pieceSize = boardSize / COLS;
+    tabSize = pieceSize * 0.20;
     boardX = (w - boardSize) / 2;
     boardY = (h - boardSize) / 2;
 
@@ -149,6 +151,8 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
     draggingPiece = null;
     pieces = [];
 
+    const edgeMap = createEdgeMap(ROWS, COLS);
+
     for(let row = 0; row < ROWS; row++){
       for(let col = 0; col < COLS; col++){
         const id = row * COLS + col;
@@ -159,7 +163,8 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
           correctCol: col,
           currentX: 0,
           currentY: 0,
-          placed: false
+          placed: false,
+          edges: edgeMap[row][col]
         });
       }
     }
@@ -168,12 +173,48 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
     window.addEventListener("resize", resize);
   }
 
+  function createEdgeMap(rows, cols){
+    const map = [];
+
+    for(let r = 0; r < rows; r++){
+      map[r] = [];
+      for(let c = 0; c < cols; c++){
+        map[r][c] = { top: 0, right: 0, bottom: 0, left: 0 };
+      }
+    }
+
+    for(let r = 0; r < rows; r++){
+      for(let c = 0; c < cols; c++){
+        if(c < cols - 1){
+          const val = Math.random() > 0.5 ? 1 : -1;
+          map[r][c].right = val;
+          map[r][c + 1].left = -val;
+        }
+        if(r < rows - 1){
+          const val = Math.random() > 0.5 ? 1 : -1;
+          map[r][c].bottom = val;
+          map[r + 1][c].top = -val;
+        }
+      }
+    }
+
+    for(let c = 0; c < cols; c++){
+      map[0][c].top = 0;
+      map[rows - 1][c].bottom = 0;
+    }
+    for(let r = 0; r < rows; r++){
+      map[r][0].left = 0;
+      map[r][cols - 1].right = 0;
+    }
+
+    return map;
+  }
+
   function repositionPiecesNeatly(){
     const loose = pieces.filter(p => !p.placed && p !== draggingPiece);
 
-    const leftX = boardX - pieceSize - 18;
-    const rightX = boardX + boardSize + 18;
-
+    const leftX = boardX - pieceSize - tabSize - 28;
+    const rightX = boardX + boardSize + 28;
     const topY = boardY;
     const midY = boardY + pieceSize;
     const bottomY = boardY + pieceSize * 2;
@@ -185,16 +226,16 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
       { x: rightX, y: midY },
       { x: leftX,  y: bottomY },
       { x: rightX, y: bottomY },
-      { x: boardX, y: boardY - pieceSize - 18 },
-      { x: boardX + pieceSize, y: boardY - pieceSize - 18 },
-      { x: boardX + pieceSize / 2, y: boardY + boardSize + 18 }
+      { x: boardX, y: boardY - pieceSize - tabSize - 24 },
+      { x: boardX + pieceSize, y: boardY - pieceSize - tabSize - 24 },
+      { x: boardX + pieceSize / 2, y: boardY + boardSize + 24 }
     ];
 
     loose.forEach((piece, i) => {
       const pos = neatPositions[i % neatPositions.length];
 
-      piece.currentX = clamp(pos.x, 8, w - pieceSize - 8);
-      piece.currentY = clamp(pos.y, 8, h - pieceSize - 8);
+      piece.currentX = clamp(pos.x, tabSize + 8, w - pieceSize - tabSize - 8);
+      piece.currentY = clamp(pos.y, tabSize + 8, h - pieceSize - tabSize - 8);
     });
   }
 
@@ -253,17 +294,19 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
 
   function drawBoardSlots(){
     ctx.save();
-    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fillStyle = "rgba(255,255,255,0.035)";
     ctx.strokeStyle = "rgba(255,255,255,0.16)";
     ctx.lineWidth = 1.2;
 
     for(let row = 0; row < ROWS; row++){
       for(let col = 0; col < COLS; col++){
+        const piece = getPieceByCorrectPos(row, col);
         const x = boardX + col * pieceSize;
         const y = boardY + row * pieceSize;
+        const path = buildPiecePath(x, y, piece.edges);
 
-        ctx.fillRect(x, y, pieceSize, pieceSize);
-        ctx.strokeRect(x, y, pieceSize, pieceSize);
+        ctx.fill(path);
+        ctx.stroke(path);
       }
     }
 
@@ -287,51 +330,81 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
   }
 
   function drawPiece(piece, isDragging){
-    const sx = piece.correctCol * (img.width / COLS);
-    const sy = piece.correctRow * (img.height / ROWS);
-    const sw = img.width / COLS;
-    const sh = img.height / ROWS;
+    const path = buildPiecePath(piece.currentX, piece.currentY, piece.edges);
+
+    const imgCellW = img.width / COLS;
+    const imgCellH = img.height / ROWS;
+
+    const sx = piece.correctCol * imgCellW - (piece.edges.left === 1 ? imgCellW * (tabSize / pieceSize) : 0);
+    const sy = piece.correctRow * imgCellH - (piece.edges.top === 1 ? imgCellH * (tabSize / pieceSize) : 0);
+
+    const sw =
+      imgCellW +
+      (piece.edges.left === 1 ? imgCellW * (tabSize / pieceSize) : 0) +
+      (piece.edges.right === 1 ? imgCellW * (tabSize / pieceSize) : 0);
+
+    const sh =
+      imgCellH +
+      (piece.edges.top === 1 ? imgCellH * (tabSize / pieceSize) : 0) +
+      (piece.edges.bottom === 1 ? imgCellH * (tabSize / pieceSize) : 0);
+
+    const dx = piece.currentX - (piece.edges.left === 1 ? tabSize : 0);
+    const dy = piece.currentY - (piece.edges.top === 1 ? tabSize : 0);
+    const dw =
+      pieceSize +
+      (piece.edges.left === 1 ? tabSize : 0) +
+      (piece.edges.right === 1 ? tabSize : 0);
+    const dh =
+      pieceSize +
+      (piece.edges.top === 1 ? tabSize : 0) +
+      (piece.edges.bottom === 1 ? tabSize : 0);
 
     ctx.save();
 
     if (isDragging) {
-      ctx.shadowColor = "rgba(255,140,60,0.45)";
-      ctx.shadowBlur = 18;
+      ctx.shadowColor = "rgba(255,140,60,0.48)";
+      ctx.shadowBlur = 20;
     }
 
-    ctx.drawImage(
-      img,
-      sx, sy, sw, sh,
-      piece.currentX, piece.currentY, pieceSize, pieceSize
-    );
+    ctx.save();
+    ctx.clip(path);
+    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+    ctx.restore();
 
-    ctx.strokeStyle = isDragging
-      ? "rgba(255,190,120,0.95)"
-      : "rgba(255,255,255,0.22)";
-    ctx.lineWidth = isDragging ? 2.5 : 1.2;
-    ctx.strokeRect(piece.currentX, piece.currentY, pieceSize, pieceSize);
+    const outline = ctx.createLinearGradient(
+      piece.currentX,
+      piece.currentY,
+      piece.currentX + pieceSize,
+      piece.currentY + pieceSize
+    );
+    outline.addColorStop(0, isDragging ? "rgba(255,225,180,0.95)" : "rgba(255,255,255,0.24)");
+    outline.addColorStop(1, isDragging ? "rgba(255,170,90,0.9)" : "rgba(255,180,120,0.14)");
+
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = isDragging ? 2.6 : 1.2;
+    ctx.stroke(path);
 
     ctx.restore();
   }
 
   function drawGridLines(){
     ctx.save();
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.strokeStyle = "rgba(255,255,255,0.06)";
     ctx.lineWidth = 1;
 
     for(let i = 1; i < COLS; i++){
       const x = boardX + i * pieceSize;
       ctx.beginPath();
-      ctx.moveTo(x, boardY);
-      ctx.lineTo(x, boardY + boardSize);
+      ctx.moveTo(x, boardY - tabSize * 0.15);
+      ctx.lineTo(x, boardY + boardSize + tabSize * 0.15);
       ctx.stroke();
     }
 
     for(let i = 1; i < ROWS; i++){
       const y = boardY + i * pieceSize;
       ctx.beginPath();
-      ctx.moveTo(boardX, y);
-      ctx.lineTo(boardX + boardSize, y);
+      ctx.moveTo(boardX - tabSize * 0.15, y);
+      ctx.lineTo(boardX + boardSize + tabSize * 0.15, y);
       ctx.stroke();
     }
 
@@ -344,8 +417,117 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
     ctx.lineWidth = 3;
     ctx.shadowColor = "rgba(255,120,30,0.8)";
     ctx.shadowBlur = 22;
-    ctx.strokeRect(boardX, boardY, boardSize, boardSize);
+    ctx.strokeRect(boardX - 4, boardY - 4, boardSize + 8, boardSize + 8);
     ctx.restore();
+  }
+
+  function buildPiecePath(x, y, edges){
+    const s = pieceSize;
+    const t = tabSize;
+    const neck = s * 0.22;
+    const knob = s * 0.10;
+
+    const path = new Path2D();
+
+    path.moveTo(x, y);
+
+    // top
+    if(edges.top === 0){
+      path.lineTo(x + s, y);
+    } else {
+      path.lineTo(x + s * 0.28, y);
+      path.bezierCurveTo(
+        x + s * 0.36, y,
+        x + s * 0.36, y - edges.top * knob,
+        x + s * 0.5 - neck, y - edges.top * t
+      );
+      path.bezierCurveTo(
+        x + s * 0.5 - knob, y - edges.top * t,
+        x + s * 0.5 + knob, y - edges.top * t,
+        x + s * 0.5 + neck, y - edges.top * t
+      );
+      path.bezierCurveTo(
+        x + s * 0.64, y - edges.top * knob,
+        x + s * 0.64, y,
+        x + s * 0.72, y
+      );
+      path.lineTo(x + s, y);
+    }
+
+    // right
+    if(edges.right === 0){
+      path.lineTo(x + s, y + s);
+    } else {
+      path.lineTo(x + s, y + s * 0.28);
+      path.bezierCurveTo(
+        x + s, y + s * 0.36,
+        x + s + edges.right * knob, y + s * 0.36,
+        x + s + edges.right * t, y + s * 0.5 - neck
+      );
+      path.bezierCurveTo(
+        x + s + edges.right * t, y + s * 0.5 - knob,
+        x + s + edges.right * t, y + s * 0.5 + knob,
+        x + s + edges.right * t, y + s * 0.5 + neck
+      );
+      path.bezierCurveTo(
+        x + s + edges.right * knob, y + s * 0.64,
+        x + s, y + s * 0.64,
+        x + s, y + s * 0.72
+      );
+      path.lineTo(x + s, y + s);
+    }
+
+    // bottom
+    if(edges.bottom === 0){
+      path.lineTo(x, y + s);
+    } else {
+      path.lineTo(x + s * 0.72, y + s);
+      path.bezierCurveTo(
+        x + s * 0.64, y + s,
+        x + s * 0.64, y + s + edges.bottom * knob,
+        x + s * 0.5 + neck, y + s + edges.bottom * t
+      );
+      path.bezierCurveTo(
+        x + s * 0.5 + knob, y + s + edges.bottom * t,
+        x + s * 0.5 - knob, y + s + edges.bottom * t,
+        x + s * 0.5 - neck, y + s + edges.bottom * t
+      );
+      path.bezierCurveTo(
+        x + s * 0.36, y + s + edges.bottom * knob,
+        x + s * 0.36, y + s,
+        x + s * 0.28, y + s
+      );
+      path.lineTo(x, y + s);
+    }
+
+    // left
+    if(edges.left === 0){
+      path.closePath();
+    } else {
+      path.lineTo(x, y + s * 0.72);
+      path.bezierCurveTo(
+        x, y + s * 0.64,
+        x - edges.left * knob, y + s * 0.64,
+        x - edges.left * t, y + s * 0.5 + neck
+      );
+      path.bezierCurveTo(
+        x - edges.left * t, y + s * 0.5 + knob,
+        x - edges.left * t, y + s * 0.5 - knob,
+        x - edges.left * t, y + s * 0.5 - neck
+      );
+      path.bezierCurveTo(
+        x - edges.left * knob, y + s * 0.36,
+        x, y + s * 0.36,
+        x, y + s * 0.28
+      );
+      path.closePath();
+    }
+
+    return path;
+  }
+
+  function getPieceByCorrectPos(row, col){
+    return pieces.find(p => p.correctRow === row && p.correctCol === col);
   }
 
   function attachInput(){
@@ -382,12 +564,9 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
 
       if (piece.placed) continue;
 
-      if (
-        p.x >= piece.currentX &&
-        p.x <= piece.currentX + pieceSize &&
-        p.y >= piece.currentY &&
-        p.y <= piece.currentY + pieceSize
-      ){
+      const path = buildPiecePath(piece.currentX, piece.currentY, piece.edges);
+
+      if (ctx.isPointInPath(path, p.x, p.y)) {
         draggingPiece = piece;
         dragOffsetX = p.x - piece.currentX;
         dragOffsetY = p.y - piece.currentY;
@@ -403,8 +582,16 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
     if (!inputEnabled || !draggingPiece || solved) return;
 
     const p = getPoint(e);
-    draggingPiece.currentX = clamp(p.x - dragOffsetX, 0, w - pieceSize);
-    draggingPiece.currentY = clamp(p.y - dragOffsetY, 0, h - pieceSize);
+    draggingPiece.currentX = clamp(
+      p.x - dragOffsetX,
+      tabSize + 4,
+      w - pieceSize - tabSize - 4
+    );
+    draggingPiece.currentY = clamp(
+      p.y - dragOffsetY,
+      tabSize + 4,
+      h - pieceSize - tabSize - 4
+    );
   }
 
   function onUp(e){
@@ -417,7 +604,7 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
     const targetY = boardY + piece.correctRow * pieceSize;
 
     const dist = Math.hypot(piece.currentX - targetX, piece.currentY - targetY);
-    const snapThreshold = pieceSize * 0.45;
+    const snapThreshold = pieceSize * 0.42;
 
     if (dist <= snapThreshold && slotIsFree(piece.correctRow, piece.correctCol)) {
       piece.currentX = targetX;
