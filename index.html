@@ -21,21 +21,17 @@
     </div>
   </section>
 
-  <!-- PAGE 1 (FOG HEART GAME) -->
+  <!-- PAGE 1 (PUZZLE GAME) -->
   <section id="page1" class="page">
     <div class="overlay">
       <h1 class="big-title">You're Invited</h1>
       <h2>X'O Nights: Nikita Turns 21</h2>
 
       <div class="tdc-game">
-        <!-- Main instruction (JS updates this after fog is cleared) -->
-        <p class="tdc-hint" id="gameHint">Swipe away the layers of fog to reveal the heart.</p>
-
-        <!-- NEW: hint shown only during fog stage -->
-        <p class="tdc-hint" id="fogHint">Hint: Use long swipes to get rid of the fog</p>
+        <p class="tdc-hint" id="gameHint">Put the puzzle pieces together to reveal the image</p>
 
         <div class="tdc-stage">
-          <canvas id="tdcCanvas" aria-label="Fog Heart Game"></canvas>
+          <canvas id="tdcCanvas" aria-label="Puzzle Game"></canvas>
         </div>
       </div>
     </div>
@@ -109,5 +105,4 @@
 
   <script src="script.js"></script>
 </body>
-
 </html>
