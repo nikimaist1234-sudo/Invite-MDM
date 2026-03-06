@@ -1,10 +1,9 @@
 const startBtn = document.getElementById("startBtn");
 const music = document.getElementById("bgMusic");
 
-const tdcCanvas = document.getElementById("tdcCanvas");    // game canvas
+const tdcCanvas = document.getElementById("tdcCanvas"); // puzzle canvas
 const sparkCanvas = document.getElementById("sparkCanvas");
 const gameHint = document.getElementById("gameHint");
-const fogHint = document.getElementById("fogHint");
 
 let game = null;
 
@@ -18,51 +17,45 @@ function showOnlyPage(pageNumber){
 startBtn?.addEventListener("click", () => {
   showOnlyPage(1);
   music?.play().catch(()=>{});
-  initFogHeartGame();
+  initPuzzleGame();
 });
 
-/* ---------------- GAME: FOG SWIPE + HEART TAPS ---------------- */
-function initFogHeartGame(){
+/* ---------------- GAME: 9-PIECE PUZZLE ---------------- */
+function initPuzzleGame(){
   if(game && typeof game.destroy === "function") game.destroy();
 
   if(gameHint){
-    gameHint.textContent = "Swipe away the layers of fog to reveal the heart.";
+    gameHint.textContent = "Fix the puzzle to reveal the image.";
   }
 
-  // Show fog hint at the start (fog stage)
-  if(fogHint){
-    fogHint.style.display = "";
-  }
-
-  game = createFogHeartGame({
+  game = createPuzzleGame({
     canvas: tdcCanvas,
-    onFogCleared: () => {
+    imageSrc: "puzzle.jpg",
+    onSolved: () => {
       if(gameHint){
-        gameHint.textContent = "Tap the heart to revive it";
+        gameHint.textContent = "Puzzle complete!";
       }
-      // Hide fog hint after fog is cleared
-      if(fogHint){
-        fogHint.style.display = "none";
-      }
-    },
-    onRevived: () => winGame() // called AFTER 3s neon hold
+      winGame();
+    }
   });
 
   game.start();
 }
 
 function winGame(){
-  if(game) game.stop();
+  if(game) game.stopInput();
 
-  // Your already-set fireworks sequence, then reveal
-  playFireworksSequence({
-    randomMs: 3000,
-    heartMs: 1700
-  });
-
+  // Keep solved puzzle visible for 3 seconds before fireworks
   setTimeout(() => {
-    finishGame();
-  }, 3000 + 1700);
+    playFireworksSequence({
+      randomMs: 3000,
+      heartMs: 1700
+    });
+
+    setTimeout(() => {
+      finishGame();
+    }, 3000 + 1700);
+  }, 3000);
 }
 
 /* ---------------- FINISH ---------------- */
@@ -74,343 +67,378 @@ function finishGame(){
     ?.scrollIntoView({behavior:"smooth"});
 }
 
-/* ---------------- FOG + HEART ENGINE ---------------- */
-function createFogHeartGame({ canvas, onFogCleared, onRevived }){
+/* ---------------- PUZZLE ENGINE ---------------- */
+function createPuzzleGame({ canvas, imageSrc, onSolved }){
   const ctx = canvas.getContext("2d");
+  const img = new Image();
 
   let w = 0, h = 0;
   let raf = null;
+  let running = false;
+  let inputEnabled = true;
+  let solved = false;
 
-  // Fog / swipe
-  const TOTAL_LAYERS = 5;
-  let layersLeft = TOTAL_LAYERS;
+  const ROWS = 3;
+  const COLS = 3;
 
-  // Tap-to-revive
-  const TAP_TARGET = 15;
-  let taps = 0;
+  let boardX = 0;
+  let boardY = 0;
+  let boardSize = 0;
+  let pieceSize = 0;
 
-  // State
-  let stage = "fog"; // "fog" -> "tap" -> "revived"
-  let inputLocked = false;
-
-  // Swipe detection
-  let pointerDown = false;
-  let lastPt = null;
-  let swipeDist = 0;
-
-  // Heart animation
-  let heartBeat = 0;   // 0..1 intensity based on taps
-  let glow = 0;        // 0..1 neon glow after revive
-  let revivedAt = 0;   // timestamp when revived
-  let revivedCallbackFired = false;
+  let pieces = [];
+  let draggingPiece = null;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
 
   function resize(){
     const parent = canvas.parentElement;
-    const maxW = Math.min(560, (parent?.clientWidth || 560));
-    const maxH = Math.min(420, Math.round(window.innerHeight * 0.42));
+    const maxW = Math.min(560, parent?.clientWidth || 560);
+    const maxH = Math.min(460, Math.round(window.innerHeight * 0.5));
 
-    canvas.width  = Math.max(280, Math.floor(maxW));
-    canvas.height = Math.max(320, Math.floor(maxH));
+    canvas.width = Math.max(300, Math.floor(maxW));
+    canvas.height = Math.max(360, Math.floor(maxH));
 
     w = canvas.width;
     h = canvas.height;
+
+    boardSize = Math.min(w * 0.58, h * 0.58);
+    pieceSize = boardSize / COLS;
+    boardX = (w - boardSize) / 2;
+    boardY = (h - boardSize) / 2;
+
+    if (pieces.length) {
+      repositionPiecesNeatly();
+      snapPlacedPiecesToGrid();
+    }
   }
 
   function start(){
-    stage = "fog";
-    layersLeft = TOTAL_LAYERS;
-    taps = 0;
+    img.onload = () => {
+      setupPieces();
+      resize();
+      attachInput();
+      running = true;
+      raf = requestAnimationFrame(tick);
+    };
 
-    inputLocked = false;
-    pointerDown = false;
-    lastPt = null;
-    swipeDist = 0;
-
-    heartBeat = 0;
-    glow = 0;
-    revivedAt = 0;
-    revivedCallbackFired = false;
-
-    resize();
-    window.addEventListener("resize", resize);
-    attachInput();
-
-    raf = requestAnimationFrame(tick);
+    img.src = imageSrc;
   }
 
   function stop(){
+    running = false;
     if(raf){
       cancelAnimationFrame(raf);
       raf = null;
     }
   }
 
+  function stopInput(){
+    inputEnabled = false;
+  }
+
   function destroy(){
     stop();
-    window.removeEventListener("resize", resize);
     detachInput();
+    window.removeEventListener("resize", resize);
   }
 
-  function tick(ts){
-    const targetBeat = Math.min(1, taps / TAP_TARGET);
-    heartBeat += (targetBeat - heartBeat) * 0.10;
+  function setupPieces(){
+    solved = false;
+    inputEnabled = true;
+    draggingPiece = null;
+    pieces = [];
 
-    if(stage === "revived"){
-      glow = Math.min(1, glow + 0.12);
+    for(let row = 0; row < ROWS; row++){
+      for(let col = 0; col < COLS; col++){
+        const id = row * COLS + col;
 
-      if(!revivedCallbackFired && (ts - revivedAt) >= 3000){
-        revivedCallbackFired = true;
-        onRevived?.();
+        pieces.push({
+          id,
+          correctRow: row,
+          correctCol: col,
+          currentX: 0,
+          currentY: 0,
+          placed: false
+        });
       }
-    } else {
-      glow = Math.max(0, glow - 0.04);
     }
 
-    drawScene(ts);
-    raf = requestAnimationFrame(tick);
+    shuffleArray(pieces);
+    window.addEventListener("resize", resize);
   }
 
-  function drawScene(ts){
-    ctx.clearRect(0,0,w,h);
+  function repositionPiecesNeatly(){
+    const loose = pieces.filter(p => !p.placed && p !== draggingPiece);
 
-    const bg = ctx.createLinearGradient(0,0,0,h);
+    const leftX = boardX - pieceSize - 18;
+    const rightX = boardX + boardSize + 18;
+
+    const topY = boardY;
+    const midY = boardY + pieceSize;
+    const bottomY = boardY + pieceSize * 2;
+
+    const neatPositions = [
+      { x: leftX,  y: topY },
+      { x: rightX, y: topY },
+      { x: leftX,  y: midY },
+      { x: rightX, y: midY },
+      { x: leftX,  y: bottomY },
+      { x: rightX, y: bottomY },
+      { x: boardX, y: boardY - pieceSize - 18 },
+      { x: boardX + pieceSize, y: boardY - pieceSize - 18 },
+      { x: boardX + pieceSize / 2, y: boardY + boardSize + 18 }
+    ];
+
+    loose.forEach((piece, i) => {
+      const pos = neatPositions[i % neatPositions.length];
+
+      piece.currentX = clamp(pos.x, 8, w - pieceSize - 8);
+      piece.currentY = clamp(pos.y, 8, h - pieceSize - 8);
+    });
+  }
+
+  function snapPlacedPiecesToGrid(){
+    pieces.forEach(piece => {
+      if(piece.placed){
+        piece.currentX = boardX + piece.correctCol * pieceSize;
+        piece.currentY = boardY + piece.correctRow * pieceSize;
+      }
+    });
+  }
+
+  function tick(){
+    drawScene();
+    if(running){
+      raf = requestAnimationFrame(tick);
+    }
+  }
+
+  function drawScene(){
+    ctx.clearRect(0, 0, w, h);
+
+    const bg = ctx.createLinearGradient(0, 0, 0, h);
     bg.addColorStop(0, "rgba(0,0,0,0.72)");
     bg.addColorStop(1, "rgba(0,0,0,0.92)");
     ctx.fillStyle = bg;
-    ctx.fillRect(0,0,w,h);
+    ctx.fillRect(0, 0, w, h);
 
-    drawHeart(ts);
+    drawBoardGlow();
+    drawBoardSlots();
+    drawPlacedPieces();
+    drawLoosePieces();
+    drawGridLines();
 
-    if(stage === "fog"){
-      drawFogLayers(ts);
-    } else if(stage === "tap"){
-      drawVignette(0.22);
-    } else {
-      drawVignette(0.35);
+    if (solved) {
+      drawSolvedGlow();
     }
   }
 
-  function drawHeart(ts){
-    const cx = w*0.5;
-    const cy = h*0.56;
-    const base = Math.min(w,h) * 0.215;
-
-    const speed = (2.0 + 4.0*heartBeat);
-    const amp   = (0.03 + 0.11*heartBeat);
-    const pulse = 1 + amp * Math.sin((ts/1000) * speed * Math.PI);
-
+  function drawBoardGlow(){
     ctx.save();
-    ctx.translate(cx, cy);
-    ctx.scale(pulse, pulse);
-
-    const neon = glow;
-
-    ctx.globalCompositeOperation = "screen";
-    const halo = ctx.createRadialGradient(0,0,0,0,0,base*3.4);
-    halo.addColorStop(0, `rgba(255,120,20,${0.10 + 0.85*neon})`);
-    halo.addColorStop(0.25, `rgba(255,160,40,${0.08 + 0.55*neon})`);
-    halo.addColorStop(1, "rgba(255,140,60,0)");
-    ctx.fillStyle = halo;
-    ctx.beginPath();
-    ctx.arc(0,0,base*3.4,0,Math.PI*2);
-    ctx.fill();
-
-    ctx.globalCompositeOperation = "source-over";
-    ctx.beginPath();
-    for(let t=0; t<=Math.PI*2 + 0.01; t += 0.035){
-      const x = 16*Math.pow(Math.sin(t),3);
-      const y = 13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t);
-      ctx.lineTo((x/18)*base, (-y/18)*base);
-    }
-    ctx.closePath();
-
-    const lum = 40 + Math.round(18 * heartBeat) + Math.round(18 * neon);
-    const g2 = ctx.createLinearGradient(-base, -base, base, base);
-    g2.addColorStop(0, `hsla(22, 100%, ${Math.min(65, lum)}%, 0.98)`);
-    g2.addColorStop(1, `hsla(30, 100%, ${Math.max(40, lum-10)}%, 0.98)`);
-    ctx.fillStyle = g2;
-    ctx.fill();
-
-    ctx.globalCompositeOperation = "screen";
-    const coreA = 0.18 + 0.45*heartBeat + 0.40*neon;
-    const g3 = ctx.createRadialGradient(-base*0.25,-base*0.20,0,-base*0.25,-base*0.20,base*1.3);
-    g3.addColorStop(0, `rgba(255,255,255,${Math.min(0.85, coreA)})`);
-    g3.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = g3;
-    ctx.fill();
-
-    ctx.globalCompositeOperation = "screen";
-    ctx.lineWidth = 3.5 + 2.0*neon;
-    ctx.strokeStyle = `rgba(255,140,40,${0.35 + 0.70*neon})`;
-    ctx.stroke();
-
-    ctx.lineWidth = 8 + 10*neon;
-    ctx.strokeStyle = `rgba(255,120,20,${0.05 + 0.30*neon})`;
-    ctx.stroke();
-
+    const g = ctx.createRadialGradient(
+      boardX + boardSize / 2,
+      boardY + boardSize / 2,
+      boardSize * 0.1,
+      boardX + boardSize / 2,
+      boardY + boardSize / 2,
+      boardSize * 0.8
+    );
+    g.addColorStop(0, "rgba(255,120,40,0.16)");
+    g.addColorStop(1, "rgba(255,120,40,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
     ctx.restore();
   }
 
-  function drawVignette(alpha){
+  function drawBoardSlots(){
     ctx.save();
-    const vg = ctx.createRadialGradient(w/2,h/2,Math.min(w,h)*0.18,w/2,h/2,Math.max(w,h)*0.85);
-    vg.addColorStop(0, "rgba(0,0,0,0)");
-    vg.addColorStop(1, `rgba(0,0,0,${alpha})`);
-    ctx.fillStyle = vg;
-    ctx.fillRect(0,0,w,h);
-    ctx.restore();
-  }
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.strokeStyle = "rgba(255,255,255,0.16)";
+    ctx.lineWidth = 1.2;
 
-  function drawFogLayers(ts){
-    const remaining = layersLeft;
+    for(let row = 0; row < ROWS; row++){
+      for(let col = 0; col < COLS; col++){
+        const x = boardX + col * pieceSize;
+        const y = boardY + row * pieceSize;
 
-    for(let i=0;i<remaining;i++){
-      const darknessStep = (remaining - i) / TOTAL_LAYERS;
-      const a = Math.min(0.92, 0.55 + 0.35*darknessStep);
-
-      const t = ts/1000;
-      const drift = (t * (6 + i*4));
-
-      const gx = (Math.sin(drift*0.35 + i*1.3) * w*0.22);
-      const gy = (Math.cos(drift*0.28 + i*1.1) * h*0.16);
-
-      ctx.save();
-      ctx.globalAlpha = a;
-      ctx.globalCompositeOperation = "source-over";
-
-      const grad = ctx.createLinearGradient(0+gx, 0+gy, w-gx, h-gy);
-      grad.addColorStop(0, `rgba(8,8,10,0.98)`);
-      grad.addColorStop(0.45, `rgba(18,18,20,0.98)`);
-      grad.addColorStop(1, `rgba(30,30,32,0.98)`);
-      ctx.fillStyle = grad;
-      ctx.fillRect(0,0,w,h);
-
-      ctx.globalCompositeOperation = "screen";
-      ctx.globalAlpha = a * 0.85;
-
-      const blobs = 14;
-      for(let b=0;b<blobs;b++){
-        const x = (w*0.05) + ((b*197 + drift*28) % (w*1.15));
-        const y = (h*0.10) + (Math.sin(drift*0.55 + b*1.25) * h*0.16) + (b%7)*h*0.12;
-
-        const r = Math.min(w,h) * (0.18 + (b%4)*0.06);
-
-        const g = ctx.createRadialGradient(x,y,0,x,y,r);
-        g.addColorStop(0, "rgba(70,70,75,0.10)");
-        g.addColorStop(0.55, "rgba(35,35,40,0.06)");
-        g.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(x,y,r,0,Math.PI*2);
-        ctx.fill();
+        ctx.fillRect(x, y, pieceSize, pieceSize);
+        ctx.strokeRect(x, y, pieceSize, pieceSize);
       }
-
-      ctx.globalCompositeOperation = "multiply";
-      ctx.globalAlpha = a * 0.35;
-      ctx.fillStyle = "rgba(0,0,0,1)";
-      ctx.fillRect(0,0,w,h);
-
-      ctx.restore();
     }
 
-    drawVignette(0.55);
+    ctx.restore();
   }
 
-  /* --------- Input handling --------- */
+  function drawPlacedPieces(){
+    pieces
+      .filter(piece => piece.placed)
+      .forEach(piece => drawPiece(piece, false));
+  }
+
+  function drawLoosePieces(){
+    pieces
+      .filter(piece => !piece.placed && piece !== draggingPiece)
+      .forEach(piece => drawPiece(piece, false));
+
+    if (draggingPiece) {
+      drawPiece(draggingPiece, true);
+    }
+  }
+
+  function drawPiece(piece, isDragging){
+    const sx = piece.correctCol * (img.width / COLS);
+    const sy = piece.correctRow * (img.height / ROWS);
+    const sw = img.width / COLS;
+    const sh = img.height / ROWS;
+
+    ctx.save();
+
+    if (isDragging) {
+      ctx.shadowColor = "rgba(255,140,60,0.45)";
+      ctx.shadowBlur = 18;
+    }
+
+    ctx.drawImage(
+      img,
+      sx, sy, sw, sh,
+      piece.currentX, piece.currentY, pieceSize, pieceSize
+    );
+
+    ctx.strokeStyle = isDragging
+      ? "rgba(255,190,120,0.95)"
+      : "rgba(255,255,255,0.22)";
+    ctx.lineWidth = isDragging ? 2.5 : 1.2;
+    ctx.strokeRect(piece.currentX, piece.currentY, pieceSize, pieceSize);
+
+    ctx.restore();
+  }
+
+  function drawGridLines(){
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 1;
+
+    for(let i = 1; i < COLS; i++){
+      const x = boardX + i * pieceSize;
+      ctx.beginPath();
+      ctx.moveTo(x, boardY);
+      ctx.lineTo(x, boardY + boardSize);
+      ctx.stroke();
+    }
+
+    for(let i = 1; i < ROWS; i++){
+      const y = boardY + i * pieceSize;
+      ctx.beginPath();
+      ctx.moveTo(boardX, y);
+      ctx.lineTo(boardX + boardSize, y);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function drawSolvedGlow(){
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,160,60,0.8)";
+    ctx.lineWidth = 3;
+    ctx.shadowColor = "rgba(255,120,30,0.8)";
+    ctx.shadowBlur = 22;
+    ctx.strokeRect(boardX, boardY, boardSize, boardSize);
+    ctx.restore();
+  }
+
   function attachInput(){
-    const onDown = (e) => {
-      if(inputLocked) return;
-      const p = getPoint(e);
-      pointerDown = true;
-      lastPt = p;
-      swipeDist = 0;
-    };
-
-    const onMove = (e) => {
-      if(inputLocked) return;
-      if(!pointerDown) return;
-
-      const p = getPoint(e);
-      if(!lastPt){ lastPt = p; return; }
-
-      const d = Math.hypot(p.x - lastPt.x, p.y - lastPt.y);
-      swipeDist += d;
-      lastPt = p;
-
-      if(stage === "fog" && layersLeft > 0 && swipeDist >= 260){
-        layersLeft -= 1;
-        swipeDist = 0;
-
-        if(layersLeft <= 0){
-          stage = "tap";
-          onFogCleared?.();
-        }
-      }
-    };
-
-    const onUp = () => {
-      pointerDown = false;
-      lastPt = null;
-      swipeDist = 0;
-    };
-
-    const onClickOrTap = (e) => {
-      if(inputLocked) return;
-      if(stage !== "tap") return;
-
-      const p = getPoint(e);
-      if(isInsideHeart(p.x, p.y)){
-        taps += 1;
-
-        if(taps >= TAP_TARGET){
-          taps = TAP_TARGET;
-          stage = "revived";
-          inputLocked = true;
-          revivedAt = performance.now();
-        }
-      }
-    };
-
     canvas.addEventListener("mousedown", onDown);
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-
     canvas.addEventListener("touchstart", onDown, { passive: false });
+
+    window.addEventListener("mousemove", onMove);
     window.addEventListener("touchmove", onMove, { passive: false });
+
+    window.addEventListener("mouseup", onUp);
     window.addEventListener("touchend", onUp, { passive: false });
     window.addEventListener("touchcancel", onUp, { passive: false });
-
-    canvas.addEventListener("click", onClickOrTap);
-    canvas.addEventListener("touchend", (e) => {
-      if(stage === "tap") onClickOrTap(e);
-    }, { passive: false });
-
-    canvas._fhHandlers = { onDown, onMove, onUp, onClickOrTap };
   }
 
   function detachInput(){
-    const hnd = canvas?._fhHandlers;
-    if(!hnd) return;
+    canvas.removeEventListener("mousedown", onDown);
+    canvas.removeEventListener("touchstart", onDown);
 
-    canvas.removeEventListener("mousedown", hnd.onDown);
-    window.removeEventListener("mousemove", hnd.onMove);
-    window.removeEventListener("mouseup", hnd.onUp);
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("touchmove", onMove);
 
-    canvas.removeEventListener("touchstart", hnd.onDown);
-    window.removeEventListener("touchmove", hnd.onMove);
-    window.removeEventListener("touchend", hnd.onUp);
-    window.removeEventListener("touchcancel", hnd.onUp);
-
-    canvas.removeEventListener("click", hnd.onClickOrTap);
-
-    canvas._fhHandlers = null;
+    window.removeEventListener("mouseup", onUp);
+    window.removeEventListener("touchend", onUp);
+    window.removeEventListener("touchcancel", onUp);
   }
 
-  function isInsideHeart(x, y){
-    const cx = w*0.5;
-    const cy = h*0.56;
-    const r = Math.min(w,h) * 0.235;
-    return Math.hypot(x - cx, y - cy) <= r;
+  function onDown(e){
+    if (!inputEnabled || solved) return;
+
+    const p = getPoint(e);
+
+    for(let i = pieces.length - 1; i >= 0; i--){
+      const piece = pieces[i];
+
+      if (piece.placed) continue;
+
+      if (
+        p.x >= piece.currentX &&
+        p.x <= piece.currentX + pieceSize &&
+        p.y >= piece.currentY &&
+        p.y <= piece.currentY + pieceSize
+      ){
+        draggingPiece = piece;
+        dragOffsetX = p.x - piece.currentX;
+        dragOffsetY = p.y - piece.currentY;
+
+        pieces = pieces.filter(pc => pc !== piece);
+        pieces.push(piece);
+        break;
+      }
+    }
+  }
+
+  function onMove(e){
+    if (!inputEnabled || !draggingPiece || solved) return;
+
+    const p = getPoint(e);
+    draggingPiece.currentX = clamp(p.x - dragOffsetX, 0, w - pieceSize);
+    draggingPiece.currentY = clamp(p.y - dragOffsetY, 0, h - pieceSize);
+  }
+
+  function onUp(e){
+    if (!inputEnabled || !draggingPiece || solved) return;
+
+    const piece = draggingPiece;
+    draggingPiece = null;
+
+    const targetX = boardX + piece.correctCol * pieceSize;
+    const targetY = boardY + piece.correctRow * pieceSize;
+
+    const dist = Math.hypot(piece.currentX - targetX, piece.currentY - targetY);
+    const snapThreshold = pieceSize * 0.45;
+
+    if (dist <= snapThreshold && slotIsFree(piece.correctRow, piece.correctCol)) {
+      piece.currentX = targetX;
+      piece.currentY = targetY;
+      piece.placed = true;
+      checkSolved();
+    }
+  }
+
+  function slotIsFree(row, col){
+    return !pieces.some(p => p.placed && p.correctRow === row && p.correctCol === col);
+  }
+
+  function checkSolved(){
+    const done = pieces.every(piece => piece.placed);
+
+    if(done){
+      solved = true;
+      inputEnabled = false;
+      onSolved?.();
+    }
   }
 
   function getPoint(e){
@@ -419,13 +447,25 @@ function createFogHeartGame({ canvas, onFogCleared, onRevived }){
     const t = e.touches?.[0] || e.changedTouches?.[0];
     const clientX = t ? t.clientX : e.clientX;
     const clientY = t ? t.clientY : e.clientY;
+
     return {
       x: (clientX - rect.left) * (canvas.width / rect.width),
       y: (clientY - rect.top) * (canvas.height / rect.height),
     };
   }
 
-  return { start, stop, destroy };
+  function clamp(v, min, max){
+    return Math.max(min, Math.min(max, v));
+  }
+
+  function shuffleArray(arr){
+    for(let i = arr.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+
+  return { start, stop, stopInput, destroy };
 }
 
 /* ---------------- FIREWORKS SEQUENCE ---------------- */
