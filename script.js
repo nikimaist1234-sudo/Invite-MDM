@@ -1,11 +1,140 @@
 const startBtn = document.getElementById("startBtn");
 const music = document.getElementById("bgMusic");
 
-const tdcCanvas = document.getElementById("tdcCanvas"); // puzzle canvas
+const tdcCanvas = document.getElementById("tdcCanvas");
 const sparkCanvas = document.getElementById("sparkCanvas");
 const gameHint = document.getElementById("gameHint");
 
+// Quiz elements
+const quizOverlay = document.getElementById("quizOverlay");
+const quizStartBtn = document.getElementById("quizStartBtn");
+const quizCloseBtn = document.getElementById("quizCloseBtn");
+const quizStartScreen = document.getElementById("quizStartScreen");
+const quizQuestionsScreen = document.getElementById("quizQuestionsScreen");
+const quizResultScreen = document.getElementById("quizResultScreen");
+const quizBeginBtn = document.getElementById("quizBeginBtn");
+const questionContainer = document.getElementById("questionContainer");
+const currentQSpan = document.getElementById("currentQ");
+const quizNameInput = document.getElementById("quizName");
+const resultHeading = document.getElementById("resultHeading");
+const resultImage = document.getElementById("resultImage");
+const resultDescription = document.getElementById("resultDescription");
+const resultAudio = document.getElementById("resultAudio");
+const tryAgainBtn = document.getElementById("tryAgainBtn");
+const backToInviteBtn = document.getElementById("backToInviteBtn");
+
 let game = null;
+
+// Quiz state
+let currentQuestion = 0;
+let userName = "";
+let answers = [];
+let quizActive = false;
+let musicPausedForQuiz = false;
+let musicCurrentTime = 0;
+
+// Song data for My Dear Melancholy
+const songs = {
+  "hurt-you": {
+    name: "Hurt You",
+    image: "hurt-you.jpg",
+    audio: "hurt-you.mp3",
+    description: "You're the guarded heart. You've been hurt before and now you protect yourself by keeping relationships at arm's length. Deep down, you just want to love without pain.",
+    lyric: "And now I know relationship's my enemy"
+  },
+  "i-was-never-there": {
+    name: "I Was Never There",
+    image: "i-was-never-there.jpg",
+    audio: "i-was-never-there.mp3",
+    description: "You're the elusive phantom. Present but never fully there, you leave people wondering if you were ever real. You understand love but struggle to hold onto it.",
+    lyric: "Now I know what love is"
+  },
+  "privilege": {
+    name: "Privilege",
+    image: "privilege.jpg",
+    audio: "privilege.mp3",
+    description: "You're the self-aware rebel. You know your patterns and your flaws, and you own them unapologetically. You'll be back to your old ways, and you're okay with that.",
+    lyric: "I'll be back to my old ways"
+  },
+  "try-me": {
+    name: "Try Me",
+    image: "try-me.jpg",
+    audio: "try-me.mp3",
+    description: "You're the confident comeback. Smooth, seductive, and always ready for round two. You never really left their mind, and you know it.",
+    lyric: "You're looking good since the last time I looked at you"
+  },
+  "wasted-times": {
+    name: "Wasted Times",
+    image: "wasted-times.jpg",
+    audio: "wasted-times.mp3",
+    description: "You're the reluctant romantic. You try to guard your heart, but feelings creep in anyway. You catch yourself caring when you swore you wouldn't.",
+    lyric: "I aint got no business catchin' feelings"
+  }
+};
+
+// Quiz questions
+const questions = [
+  {
+    question: "If you had to pick one guilty-pleasure snack at midnight, what is it?",
+    choices: [
+      { text: "Chips + something spicy", song: "hurt-you" },
+      { text: "Ice cream straight from the tub", song: "i-was-never-there" },
+      { text: "Chocolate/Sweets", song: "privilege" },
+      { text: "A sweet pastry / dessert", song: "try-me" },
+      { text: "None of the above...I'm trying to be healthy", song: "wasted-times" }
+    ]
+  },
+  {
+    question: "Which language would you love to learn just for fun?",
+    choices: [
+      { text: "French", song: "hurt-you" },
+      { text: "Spanish", song: "i-was-never-there" },
+      { text: "Italian", song: "privilege" },
+      { text: "Japanese", song: "try-me" },
+      { text: "German", song: "wasted-times" }
+    ]
+  },
+  {
+    question: "Favorite genre of music",
+    choices: [
+      { text: "Pop", song: "hurt-you" },
+      { text: "R&B", song: "i-was-never-there" },
+      { text: "80's and 90's", song: "privilege" },
+      { text: "Rap", song: "try-me" },
+      { text: "Amapiano", song: "wasted-times" }
+    ]
+  },
+  {
+    question: "Which one of these places would you like to go to for vacation?",
+    choices: [
+      { text: "Tokyo", song: "hurt-you" },
+      { text: "New York", song: "i-was-never-there" },
+      { text: "Rio", song: "privilege" },
+      { text: "Paris", song: "try-me" },
+      { text: "Italy", song: "wasted-times" }
+    ]
+  },
+  {
+    question: "Pick a colour",
+    choices: [
+      { text: "Black", song: "hurt-you" },
+      { text: "White", song: "i-was-never-there" },
+      { text: "Red", song: "privilege" },
+      { text: "Blue", song: "try-me" },
+      { text: "Yellow", song: "wasted-times" }
+    ]
+  },
+  {
+    question: "Pick a My Dear Melancholy lyric",
+    choices: [
+      { text: "Hurt You – \"And now I know relationship's my enemy\"", song: "hurt-you" },
+      { text: "I Was Never There – \"Now I know what love is\"", song: "i-was-never-there" },
+      { text: "Privilege – \"I'll be back to my old ways\"", song: "privilege" },
+      { text: "Try Me – \"You're looking good since the last time I looked at you\"", song: "try-me" },
+      { text: "Wasted Times – \"I aint got no business catchin' feelings\"", song: "wasted-times" }
+    ]
+  }
+];
 
 /* ---------------- PAGE NAV ---------------- */
 function showOnlyPage(pageNumber){
@@ -19,6 +148,23 @@ startBtn?.addEventListener("click", () => {
   music?.play().catch(()=>{});
   initPuzzleGame();
 });
+
+/* ---------------- MUSIC ---------------- */
+function pauseMusicForQuiz() {
+  if (music && !music.paused) {
+    musicCurrentTime = music.currentTime;
+    music.pause();
+    musicPausedForQuiz = true;
+  }
+}
+
+function resumeMusicFromQuiz() {
+  if (music && musicPausedForQuiz) {
+    music.currentTime = musicCurrentTime;
+    music.play().catch(() => {});
+    musicPausedForQuiz = false;
+  }
+}
 
 /* ---------------- GAME: 9-PIECE PUZZLE ---------------- */
 function initPuzzleGame(){
@@ -45,7 +191,6 @@ function initPuzzleGame(){
 function winGame(){
   if(game) game.stopInput();
 
-  // Keep solved puzzle visible for 3 seconds before fireworks
   setTimeout(() => {
     playFireworksSequence({
       randomMs: 3000,
@@ -431,7 +576,6 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
 
     path.moveTo(x, y);
 
-    // top
     if(edges.top === 0){
       path.lineTo(x + s, y);
     } else {
@@ -454,7 +598,6 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
       path.lineTo(x + s, y);
     }
 
-    // right
     if(edges.right === 0){
       path.lineTo(x + s, y + s);
     } else {
@@ -477,7 +620,6 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
       path.lineTo(x + s, y + s);
     }
 
-    // bottom
     if(edges.bottom === 0){
       path.lineTo(x, y + s);
     } else {
@@ -500,7 +642,6 @@ function createPuzzleGame({ canvas, imageSrc, onSolved }){
       path.lineTo(x, y + s);
     }
 
-    // left
     if(edges.left === 0){
       path.closePath();
     } else {
@@ -811,3 +952,192 @@ function playFireworksSequence({ randomMs = 3000, heartMs = 1700 } = {}){
 
   requestAnimationFrame(tick);
 }
+
+/* ---------------- QUIZ FUNCTIONS ---------------- */
+function openQuiz() {
+  pauseMusicForQuiz();
+  quizOverlay.setAttribute("aria-hidden", "false");
+  quizOverlay.classList.add("active");
+  quizActive = true;
+  
+  currentQuestion = 0;
+  answers = [];
+  userName = "";
+  quizNameInput.value = "";
+  
+  quizStartScreen.style.display = "block";
+  quizQuestionsScreen.style.display = "none";
+  quizResultScreen.style.display = "none";
+  
+  resultAudio.pause();
+  resultAudio.currentTime = 0;
+}
+
+function closeQuiz() {
+  quizOverlay.setAttribute("aria-hidden", "true");
+  quizOverlay.classList.remove("active");
+  quizActive = false;
+  
+  resultAudio.pause();
+  resultAudio.currentTime = 0;
+  
+  resumeMusicFromQuiz();
+}
+
+function beginQuiz() {
+  userName = quizNameInput.value.trim() || "Guest";
+  
+  if (!userName) {
+    alert("Please enter your name!");
+    return;
+  }
+  
+  quizStartScreen.style.display = "none";
+  quizQuestionsScreen.style.display = "block";
+  showQuestion(0);
+}
+
+function showQuestion(index) {
+  currentQuestion = index;
+  currentQSpan.textContent = index + 1;
+  
+  const q = questions[index];
+  
+  let html = `
+    <div class="question-box">
+      <h3 class="question-text">${q.question}</h3>
+      <div class="choices-container">
+  `;
+  
+  q.choices.forEach((choice, i) => {
+    html += `
+      <button class="choice-btn" data-song="${choice.song}" data-index="${i}">
+        ${choice.text}
+      </button>
+    `;
+  });
+  
+  html += `
+      </div>
+    </div>
+    <div class="quiz-nav">
+      ${index > 0 ? '<button class="nav-btn prev-btn" id="prevBtn">Previous</button>' : '<div></div>'}
+      ${index === questions.length - 1 ? 
+        '<button class="nav-btn reveal-btn" id="revealBtn" style="display: none;">Reveal my song</button>' : 
+        '<button class="nav-btn next-btn" id="nextBtn" style="display: none;">Next</button>'}
+    </div>
+  `;
+  
+  questionContainer.innerHTML = html;
+  
+  document.querySelectorAll(".choice-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      document.querySelectorAll(".choice-btn").forEach(b => b.classList.remove("selected"));
+      e.target.classList.add("selected");
+      
+      answers[index] = e.target.dataset.song;
+      
+      if (index === questions.length - 1) {
+        document.getElementById("revealBtn").style.display = "inline-block";
+      } else {
+        document.getElementById("nextBtn").style.display = "inline-block";
+      }
+    });
+  });
+  
+  const nextBtn = document.getElementById("nextBtn");
+  if (nextBtn) {
+    nextBtn.addEventListener("click", () => {
+      showQuestion(index + 1);
+    });
+  }
+  
+  const prevBtn = document.getElementById("prevBtn");
+  if (prevBtn) {
+    prevBtn.addEventListener("click", () => {
+      showQuestion(index - 1);
+    });
+  }
+  
+  const revealBtn = document.getElementById("revealBtn");
+  if (revealBtn) {
+    revealBtn.addEventListener("click", () => {
+      showResult();
+    });
+  }
+  
+  if (answers[index]) {
+    const prevBtn = document.querySelector(`[data-song="${answers[index]}"]`);
+    if (prevBtn) {
+      prevBtn.classList.add("selected");
+      if (index === questions.length - 1) {
+        document.getElementById("revealBtn").style.display = "inline-block";
+      } else {
+        document.getElementById("nextBtn").style.display = "inline-block";
+      }
+    }
+  }
+}
+
+function showResult() {
+  const songCounts = {};
+  answers.forEach(song => {
+    songCounts[song] = (songCounts[song] || 0) + 1;
+  });
+  
+  let maxCount = 0;
+  let resultSong = "";
+  
+  for (const [song, count] of Object.entries(songCounts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      resultSong = song;
+    }
+  }
+  
+  if (!resultSong) resultSong = answers[0];
+  
+  const songData = songs[resultSong];
+  
+  resultHeading.textContent = `${userName}, you Are ${songData.name}`;
+  resultImage.src = songData.image;
+  resultImage.alt = songData.name;
+  resultDescription.textContent = songData.description;
+  
+  resultAudio.src = songData.audio;
+  
+  quizQuestionsScreen.style.display = "none";
+  quizResultScreen.style.display = "block";
+  
+  resultAudio.play().catch(() => {});
+  
+  setTimeout(() => {
+    quizResultScreen.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 100);
+}
+
+function tryAgain() {
+  currentQuestion = 0;
+  answers = [];
+  resultAudio.pause();
+  resultAudio.currentTime = 0;
+  
+  quizResultScreen.style.display = "none";
+  quizStartScreen.style.display = "block";
+  quizNameInput.value = userName;
+}
+
+/* ---------------- QUIZ EVENT LISTENERS ---------------- */
+quizStartBtn?.addEventListener("click", openQuiz);
+quizCloseBtn?.addEventListener("click", closeQuiz);
+quizBeginBtn?.addEventListener("click", beginQuiz);
+tryAgainBtn?.addEventListener("click", tryAgain);
+backToInviteBtn?.addEventListener("click", () => {
+  closeQuiz();
+});
+
+quizOverlay?.addEventListener("click", (e) => {
+  if (e.target === quizOverlay) {
+    closeQuiz();
+  }
+});
