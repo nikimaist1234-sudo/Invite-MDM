@@ -23,9 +23,9 @@
 
   <!-- PAGE 1 (PUZZLE GAME) -->
   <section id="page1" class="page">
-    <div class="overlay">
+    <div class="overlay game-overlay">
       <h1 class="big-title">You're Invited</h1>
-      <h2 class="event-title">X'O Nights: Nikita Turns 21</h2>
+      <h2 class="invite-subtitle">X'O Nights: Nikita Turns 21</h2>
 
       <div class="tdc-game">
         <p class="tdc-hint" id="gameHint">Put the puzzle pieces together to reveal the image</p>
@@ -61,11 +61,11 @@
     <div class="two-column">
       <div class="left">
         <img src="MDM.jpg" alt="My Dear Melancholy">
-        <p class="tagline">Melancholy burns in silence</p>
+        <p class="tagline"><strong>Melancholy burns in silence</strong></p>
       </div>
 
       <div class="right text-left">
-        <h1 class="dress-code-title">Dress Code</h1>
+        <h1 class="dress-title">Dress Code</h1>
 
         <div class="highlight-box">
           You have been chosen to represent <strong>My Dear Melancholy</strong>
@@ -76,33 +76,50 @@
           <li>Casual, Comfort over beauty</li>
         </ul>
 
-        <p><strong>Note:</strong> Your t-shirt/dress(ladies) should represent the dress code. Having your bottoms/pants represent the dress code is unacceptable. Please and thank you.</p>
+        <p><strong>Kindly Note:</strong> The dress code should be represented by your top (t-shirt or dress). Bottoms/pants alone will not meet the requirement. Thank you for understanding.</p>
         
         <br><br>
-        <p class="scroll-hint"><strong>Keep scrolling, I'm not done yet :D</strong></p>
+        <p class="scroll-note"><strong>Keep scrolling, I'm not done yet😊</strong></p>
       </div>
     </div>
   </section>
 
   <!-- PAGE 4 -->
   <section id="page4" class="page light-page contact-layout">
-    <div class="two-column">
-      <div class="left text-left">
-        <h1 class="big-contact">Contact Details</h1>
-        <p>Contact Nikita for more information, if you don't want to contact me. Contact my mother-Koshnee for more information</p>
-        
-        <br>
-        <p><strong>Phone number:</strong> <span class="contact-info">0813270172</span></p>
-        <p><strong>Koshnee's Number:</strong> <span class="contact-info">0832269234</span></p>
-        <p><strong>RSVP:</strong> <span class="contact-info">There is none, you have to come</span></p>
-      </div>
+    <div class="page4-content">
+      <div class="two-column">
+        <div class="left text-left">
+          <h1 class="big-contact">Contact Details</h1>
+          <p>Contact Nikita for more information, if you don't want to contact me.</p>
+          <p>Contact my mother-Koshnee for more information</p>
+        </div>
 
-      <div class="right text-left">
-        <!-- Quiz Section -->
-        <div class="quiz-intro-box">
-          <h2 class="quiz-heading">Find out what song you are from in My Dear Melancholy</h2>
-          <p class="quiz-sub">Participate if you want</p>
-          <button class="quiz-btn" id="quizStartBtn">Click to play</button>
+        <div class="right text-left">
+          <div class="contact-lines">
+            <p class="contact-line">
+              <span class="label">Phone Number</span><span class="colon">:</span>
+              <span class="value">0813270172</span>
+            </p>
+
+            <p class="contact-line">
+              <span class="label">Koshnee's Number</span><span class="colon">:</span>
+              <span class="value">0832269234</span>
+            </p>
+
+            <p class="contact-line">
+              <span class="label">RSVP</span><span class="colon">:</span>
+              <span class="value">There is none, you have to come😉</span>
+            </p>
+          </div>
+
+          <br><br>
+
+          <!-- Quiz Teaser -->
+          <div class="quiz-teaser">
+            <h3 class="quiz-teaser-title">Find out what song you are from My Dear Melancholy</h3>
+            <p class="quiz-teaser-sub">Participate if you want</p>
+            <button class="quiz-play-btn" id="openQuizBtn">Click to play</button>
+          </div>
         </div>
       </div>
     </div>
@@ -112,48 +129,93 @@
     </footer>
   </section>
 
-  <!-- QUIZ MODAL/OVERLAY -->
-  <div id="quizOverlay" class="quiz-overlay" aria-hidden="true">
-    <div class="quiz-container">
-      <button class="quiz-close" id="quizCloseBtn">×</button>
+  <!-- QUIZ SCREEN (Overlay) -->
+  <section id="pageQuiz" class="quiz-screen" aria-hidden="true">
+    <div class="quiz-inner">
+      <button class="quiz-back-btn" id="quizBackBtn">← Back to Invite</button>
       
-      <div class="quiz-start-screen" id="quizStartScreen">
-        <h2 class="quiz-main-heading">Which My Dear Melancholy song are you?</h2>
-        <p class="quiz-tagline">6 quick picks, Soft reveal.</p>
-        
-        <div class="name-input-section">
-          <label for="quizName">Enter your name:</label>
-          <input type="text" id="quizName" placeholder="Your name" maxlength="30">
+      <h2 class="quiz-title">Which My Dear Melancholy song are you?</h2>
+      <p class="quiz-subtitle">6 quick picks, Soft reveal. <span class="quiz-album">MY DEAR MELANCHOLY,</span></p>
+
+      <form class="quiz-form" id="quizForm">
+        <div class="quiz-q">
+          <input type="text" id="guestName" name="guestName" class="quiz-name" placeholder="Enter your name" required>
         </div>
-        
-        <button class="quiz-begin-btn" id="quizBeginBtn">Start Quiz</button>
+
+        <div class="quiz-q">
+          <h3>1. If you had to pick one guilty-pleasure snack at midnight, what is it?</h3>
+          <label><input type="radio" name="q1" value="hurt-you"> Chips + something spicy</label>
+          <label><input type="radio" name="q1" value="i-was-never-there"> Ice cream straight from the tub</label>
+          <label><input type="radio" name="q1" value="privilege"> Chocolate/Sweets</label>
+          <label><input type="radio" name="q1" value="try-me"> A sweet pastry / dessert</label>
+          <label><input type="radio" name="q1" value="wasted-times"> None of the above...I'm trying to be healthy</label>
+        </div>
+
+        <div class="quiz-q">
+          <h3>2. Which language would you love to learn just for fun?</h3>
+          <label><input type="radio" name="q2" value="hurt-you"> French</label>
+          <label><input type="radio" name="q2" value="i-was-never-there"> Spanish</label>
+          <label><input type="radio" name="q2" value="privilege"> Italian</label>
+          <label><input type="radio" name="q2" value="try-me"> Japanese</label>
+          <label><input type="radio" name="q2" value="wasted-times"> German</label>
+        </div>
+
+        <div class="quiz-q">
+          <h3>3. Favorite genre of music</h3>
+          <label><input type="radio" name="q3" value="hurt-you"> Pop</label>
+          <label><input type="radio" name="q3" value="i-was-never-there"> R&B</label>
+          <label><input type="radio" name="q3" value="privilege"> 80's and 90's</label>
+          <label><input type="radio" name="q3" value="try-me"> Rap</label>
+          <label><input type="radio" name="q3" value="wasted-times"> Amapiano</label>
+        </div>
+
+        <div class="quiz-q">
+          <h3>4. Which one of these places would you like to go to for vacation?</h3>
+          <label><input type="radio" name="q4" value="hurt-you"> Tokyo</label>
+          <label><input type="radio" name="q4" value="i-was-never-there"> New York</label>
+          <label><input type="radio" name="q4" value="privilege"> Rio</label>
+          <label><input type="radio" name="q4" value="try-me"> Paris</label>
+          <label><input type="radio" name="q4" value="wasted-times"> Italy</label>
+        </div>
+
+        <div class="quiz-q">
+          <h3>5. Pick a colour</h3>
+          <label><input type="radio" name="q5" value="hurt-you"> Black</label>
+          <label><input type="radio" name="q5" value="i-was-never-there"> White</label>
+          <label><input type="radio" name="q5" value="privilege"> Red</label>
+          <label><input type="radio" name="q5" value="try-me"> Blue</label>
+          <label><input type="radio" name="q5" value="wasted-times"> Yellow</label>
+        </div>
+
+        <div class="quiz-q">
+          <h3>6. Pick a My Dear Melancholy lyric</h3>
+          <label><input type="radio" name="q6" value="hurt-you"> "And now I know relationship's my enemy"</label>
+          <label><input type="radio" name="q6" value="i-was-never-there"> "Now I know what love is"</label>
+          <label><input type="radio" name="q6" value="privilege"> "I'll be back to my old ways"</label>
+          <label><input type="radio" name="q6" value="try-me"> "You're looking good since the last time I looked at you"</label>
+          <label><input type="radio" name="q6" value="wasted-times"> "I aint got no business catchin' feelings"</label>
+        </div>
+
+        <button type="button" class="quiz-finish-btn" id="quizFinishBtn">Reveal my song</button>
+      </form>
+
+      <div class="quiz-result" id="quizResult">
+        <div class="quiz-result-inner fade-soft" id="quizResultInner"></div>
+        <img id="resultCover" class="result-cover" alt="Song Cover">
+        <p id="resultBlurb" class="result-blurb"></p>
+        <div class="quiz-result-actions">
+          <button class="quiz-retry-btn" id="quizRetryBtn">Try again</button>
+          <button class="quiz-close-btn" id="quizCloseBtn">Back to invite</button>
+        </div>
       </div>
 
-      <div class="quiz-questions-screen" id="quizQuestionsScreen" style="display: none;">
-        <div class="quiz-progress">Question <span id="currentQ">1</span>/6</div>
-        
-        <div class="question-container" id="questionContainer">
-          <!-- Questions injected by JS -->
-        </div>
-      </div>
-
-      <div class="quiz-result-screen" id="quizResultScreen" style="display: none;">
-        <h2 class="result-heading" id="resultHeading">You Are [Song]</h2>
-        <div class="result-image-container">
-          <img id="resultImage" src="" alt="Song Album Art">
-        </div>
-        <p class="result-description" id="resultDescription"></p>
-        <audio id="resultAudio" preload="auto"></audio>
-        <div class="result-buttons">
-          <button class="result-btn" id="tryAgainBtn">Try again</button>
-          <button class="result-btn" id="backToInviteBtn">Back to invite</button>
-        </div>
-      </div>
+      <div class="quiz-overlay" id="quizOverlay"></div>
     </div>
-  </div>
+  </section>
 
   <!-- MUSIC -->
   <audio id="bgMusic" src="CallOutMyName.mp3" preload="auto"></audio>
+  <audio id="resultAudio" preload="auto"></audio>
 
   <script src="script.js"></script>
 </body>
