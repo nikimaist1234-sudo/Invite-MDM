@@ -41,13 +41,51 @@ html, body {
   z-index: 2;
 }
 
-/* ---------------- PAGE 0 ---------------- */
+/* ---------------- LOCK + SCROLL MODES ---------------- */
+body.locked{
+  height: 100vh;
+  overflow: hidden;
+}
+
+body.scroll-mode{
+  background: #e5e5e5;
+  overflow-y: auto;
+}
+
+/* hide intro pages once unlocked */
+body.scroll-mode #page0,
+body.scroll-mode #page1{
+  display: none;
+}
+
+/* stack pages 2-4 normally */
+body.scroll-mode .page{
+  position: relative;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition: none;
+  padding: 40px;
+}
+
+body.scroll-mode #page2,
+body.scroll-mode #page3,
+body.scroll-mode #page4{
+  display: flex;
+}
+
+body.scroll-mode #page4{
+  padding-bottom: 0;
+}
+
+/* ---------------- PAGE 0 (Volume) ---------------- */
 .volume-page {
   background: url("background.jpg") no-repeat center center/cover;
   color: white;
 }
 
-.volume-overlay h2 {
+.volume-overlay h2{
   margin-top: 10px;
   opacity: 0.95;
 }
@@ -66,33 +104,35 @@ html, body {
   width: min(720px, 92vw);
 }
 
+.game-overlay {
+  background: rgba(0,0,0,0.75);
+  padding: 30px;
+  border-radius: 15px;
+  text-align: center;
+  width: min(600px, 95vw);
+}
+
 .big-title {
   font-size: 5rem;
   margin-bottom: 10px;
 }
 
-/* Change 1: Slightly bigger event title */
-.event-title {
-  font-size: 1.4rem;
-  font-weight: 600;
+.invite-subtitle{
+  font-size: 1.55rem;
+  margin-top: 2px;
   margin-bottom: 20px;
 }
 
-/* ---------------- TEAR DROP CATCHER GAME ---------------- */
+/* ---------------- PUZZLE GAME ---------------- */
 .tdc-game{
-  margin-top: 26px;
+  margin-top: 20px;
 }
 
 .tdc-hint{
   font-size: 1.15rem;
   opacity: 0.95;
   margin-bottom: 16px;
-}
-
-.tdc-subhint{
-  margin-top: 10px;
-  opacity: 0.8;
-  font-size: 0.95rem;
+  color: #ffb366;
 }
 
 .tdc-stage{
@@ -101,50 +141,17 @@ html, body {
   margin: 12px 0 18px;
 }
 
+/* Deep orange game box */
 #tdcCanvas{
   width: min(560px, 82vw);
   height: min(420px, 46vh);
   border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.25);
-  box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+  border: 1px solid rgba(255, 140, 0, 0.4);
+  background: rgba(255, 100, 0, 0.15);
+  box-shadow: 
+    0 18px 40px rgba(0,0,0,0.35),
+    inset 0 0 60px rgba(255, 100, 0, 0.2);
   touch-action: none;
-}
-
-/* progress UI */
-.tdc-progress{
-  margin-top: 6px;
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-}
-
-.progress-label{
-  opacity: 0.9;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-.progress-track{
-  width: min(420px, 78vw);
-  height: 10px;
-  background: rgba(255,255,255,0.12);
-  border-radius: 999px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.12);
-}
-
-.progress-fill{
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, rgba(255,120,40,0.8), rgba(255,180,80,0.9));
-  box-shadow: 0 0 18px rgba(255,140,60,0.25);
-  transition: width 0.08s linear;
-}
-
-.progress-text{
-  font-size: 0.95rem;
-  opacity: 0.9;
 }
 
 /* ---------------- SPARK OVERLAY ---------------- */
@@ -160,379 +167,6 @@ html, body {
 
 #sparkCanvas.active{
   opacity: 1;
-}
-
-/* ---------------- LIGHT PAGES ---------------- */
-.light-page {
-  background-color: #e5e5e5;
-  color: black;
-}
-
-/* ---------------- TWO COLUMN LAYOUT ---------------- */
-.two-column {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  gap: 30px;
-}
-
-.two-column .left,
-.two-column .right {
-  width: 45%;
-}
-
-.text-left {
-  text-align: left;
-}
-
-.two-column img {
-  width: 100%;
-  border-radius: 8px;
-}
-
-.big-line {
-  font-size: 1.3rem;
-  margin-top: 12px;
-}
-
-/* ---------------- PAGE 3 SPECIFIC ---------------- */
-/* Change 3: Slightly bigger Dress Code title */
-.dress-code-title {
-  font-size: 2.2rem;
-  margin-bottom: 15px;
-}
-
-/* Change 3: Highlight box with black outline and bold My Dear Melancholy */
-.highlight-box {
-  background-color: #d6d6d6;
-  padding: 10px 15px;
-  border-radius: 5px;
-  display: inline-block;
-  margin: 10px 0 14px;
-  border: 2px solid #000;
-  font-weight: 500;
-}
-
-.dress-list {
-  padding-left: 20px;
-}
-
-.dress-list li {
-  margin-bottom: 8px;
-}
-
-.tagline{
-  margin-top: 10px;
-  font-weight: 700;
-  opacity: 0.9;
-}
-
-/* Change 3: Scroll hint styling */
-.scroll-hint {
-  font-size: 1.1rem;
-  margin-top: 20px;
-}
-
-/* ---------------- PAGE 4 / CONTACT ---------------- */
-.big-contact {
-  font-size: 3rem;
-}
-
-.contact-info {
-  font-weight: normal;
-}
-
-/* Quiz Intro Box on Page 4 */
-.quiz-intro-box {
-  background: linear-gradient(135deg, rgba(255, 120, 40, 0.15), rgba(0,0,0,0.05));
-  border: 2px solid rgba(255, 120, 40, 0.4);
-  border-radius: 15px;
-  padding: 30px;
-  text-align: center;
-  margin-top: 20px;
-}
-
-.quiz-heading {
-  font-size: 1.4rem;
-  color: #000;
-  margin-bottom: 10px;
-  font-weight: 700;
-}
-
-.quiz-sub {
-  font-size: 1rem;
-  color: #444;
-  margin-bottom: 20px;
-  font-style: italic;
-}
-
-.quiz-btn {
-  background: #000;
-  color: #fff;
-  padding: 12px 30px;
-  font-size: 1rem;
-  border-radius: 25px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
-}
-
-.quiz-btn:hover {
-  background: rgba(255, 120, 40, 0.9);
-  color: #000;
-  transform: scale(1.05);
-}
-
-/* ---------------- QUIZ OVERLAY ---------------- */
-.quiz-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.85);
-  z-index: 10000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease;
-}
-
-.quiz-overlay.active {
-  opacity: 1;
-  visibility: visible;
-}
-
-.quiz-container {
-  background: #e5e5e5;
-  width: min(600px, 90vw);
-  max-height: 90vh;
-  overflow-y: auto;
-  border-radius: 20px;
-  padding: 40px;
-  position: relative;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-}
-
-.quiz-close {
-  position: absolute;
-  top: 15px;
-  right: 20px;
-  background: none;
-  border: none;
-  font-size: 2rem;
-  cursor: pointer;
-  color: #000;
-  padding: 0;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background 0.2s;
-}
-
-.quiz-close:hover {
-  background: rgba(0,0,0,0.1);
-}
-
-/* Quiz Start Screen */
-.quiz-main-heading {
-  font-size: 2rem;
-  text-align: center;
-  margin-bottom: 10px;
-  color: #000;
-}
-
-.quiz-tagline {
-  text-align: center;
-  color: #555;
-  margin-bottom: 30px;
-  font-style: italic;
-}
-
-.name-input-section {
-  margin-bottom: 25px;
-}
-
-.name-input-section label {
-  display: block;
-  margin-bottom: 10px;
-  font-weight: 600;
-  color: #000;
-}
-
-.name-input-section input {
-  width: 100%;
-  padding: 12px 15px;
-  border: 2px solid #ccc;
-  border-radius: 10px;
-  font-size: 1rem;
-  transition: border-color 0.3s;
-}
-
-.name-input-section input:focus {
-  outline: none;
-  border-color: rgba(255, 120, 40, 0.9);
-}
-
-.quiz-begin-btn {
-  width: 100%;
-  padding: 15px;
-  background: #000;
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.quiz-begin-btn:hover {
-  background: rgba(255, 120, 40, 0.9);
-  color: #000;
-}
-
-/* Quiz Questions Screen */
-.quiz-progress {
-  text-align: center;
-  margin-bottom: 20px;
-  font-weight: 600;
-  color: #666;
-  font-size: 0.9rem;
-}
-
-.question-box {
-  margin-bottom: 25px;
-}
-
-.question-text {
-  font-size: 1.2rem;
-  margin-bottom: 20px;
-  color: #000;
-  line-height: 1.4;
-}
-
-.choices-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.choice-btn {
-  padding: 15px 20px;
-  background: #fff;
-  border: 2px solid #ddd;
-  border-radius: 10px;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.95rem;
-  color: #333;
-}
-
-.choice-btn:hover {
-  border-color: rgba(255, 120, 40, 0.6);
-  background: rgba(255, 120, 40, 0.05);
-}
-
-.choice-btn.selected {
-  border-color: #000;
-  background: rgba(255, 120, 40, 0.2);
-  font-weight: 600;
-}
-
-.quiz-nav {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 25px;
-}
-
-.nav-btn {
-  padding: 12px 25px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s;
-}
-
-.prev-btn {
-  background: #ddd;
-  color: #000;
-}
-
-.prev-btn:hover {
-  background: #ccc;
-}
-
-.next-btn, .reveal-btn {
-  background: #000;
-  color: #fff;
-}
-
-.next-btn:hover, .reveal-btn:hover {
-  background: rgba(255, 120, 40, 0.9);
-  color: #000;
-}
-
-/* Quiz Result Screen */
-.quiz-result-screen {
-  text-align: center;
-}
-
-.result-heading {
-  font-size: 1.8rem;
-  margin-bottom: 25px;
-  color: #000;
-  line-height: 1.3;
-}
-
-.result-image-container {
-  width: 100%;
-  max-width: 300px;
-  margin: 0 auto 20px;
-  border-radius: 15px;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-}
-
-.result-image-container img {
-  width: 100%;
-  display: block;
-}
-
-.result-description {
-  font-size: 1.1rem;
-  color: #444;
-  margin-bottom: 30px;
-  line-height: 1.5;
-  font-style: italic;
-}
-
-.result-buttons {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.result-btn {
-  padding: 12px 25px;
-  border: 2px solid #000;
-  background: #000;
-  color: #fff;
-  border-radius: 25px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s;
-}
-
-.result-btn:hover {
-  background: transparent;
-  color: #000;
 }
 
 /* ---------------- BUTTONS ---------------- */
@@ -558,59 +192,365 @@ button.primary:hover{
   background: #e9e9e9;
 }
 
+/* ---------------- LIGHT PAGES ---------------- */
+.light-page {
+  background-color: #e5e5e5;
+  color: black;
+}
+
+/* ---------------- TWO COLUMN LAYOUT ---------------- */
+.two-column {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: min(960px, 92vw);
+  gap: 30px;
+}
+
+.two-column .left,
+.two-column .right {
+  width: 45%;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.two-column img {
+  width: 100%;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+}
+
+.big-line {
+  font-size: 1.3rem;
+  margin-top: 12px;
+}
+
+/* ---------------- PAGE 3 ---------------- */
+.tagline{
+  text-align: center;
+  margin-top: 10px;
+  opacity: 0.95;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.3px;
+}
+
+.dress-title{
+  font-size: 1.65rem;
+}
+
+/* FIX: Thinner border like Kissland version */
+.highlight-box {
+  background-color: rgba(0,0,0,0.06);
+  padding: 14px 16px;
+  border-radius: 14px;
+  display: inline-block;
+  margin: 12px 0 14px;
+  border: 1px solid rgba(0,0,0,0.55);
+}
+
+.dress-list {
+  padding-left: 20px;
+  line-height: 1.8;
+}
+
+.dress-list li {
+  margin-bottom: 8px;
+}
+
+.scroll-note{
+  margin-top: 18px;
+}
+
+/* ---------------- CONTACT PAGE ---------------- */
+.big-contact {
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+}
+
+.contact-lines{
+  margin-top: 10px;
+}
+
+.contact-line{
+  display: grid;
+  grid-template-columns: auto 14px 1fr;
+  column-gap: 8px;
+  align-items: baseline;
+  margin: 10px 0;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.contact-line .label,
+.contact-line .colon{
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.contact-line .value{
+  font-weight: 400;
+}
+
+/* Page 4 sticky footer structure */
+#page4{
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  min-height: 100vh;
+}
+
+#page4 .page4-content{
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 18px;
+}
+
 /* ---------------- FOOTER ---------------- */
 .dark-footer {
   width: 100%;
   background: black;
   color: white;
-  padding: 15px 0;
+  padding: 16px 0;
   text-align: center;
   font-weight: bold;
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-family: Rockwell, "Times New Roman", serif;
-  margin-top: 30px;
+  margin-top: auto;
 }
 
-/* ---------------- SCROLL MODE ---------------- */
-body.locked{
-  height: 100vh;
-  overflow: hidden;
+/* ---------------- QUIZ (My Dear Melancholy Style) ---------------- */
+body.quiz-open{
+  overflow: hidden !important;
 }
 
-body.scroll-mode{
-  background: #e5e5e5;
-  overflow-y: auto;
-}
-
-body.scroll-mode #page0,
-body.scroll-mode #page1{
+.quiz-screen{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
   display: none;
+  background: rgba(80, 80, 80, 0.92);
+  backdrop-filter: blur(8px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 24px 0;
 }
 
-body.scroll-mode .page{
-  position: relative;
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: none;
-  transition: none;
-  padding: 40px;
-}
-
-body.scroll-mode #page2,
-body.scroll-mode #page3,
-body.scroll-mode #page4{
+body.quiz-open .quiz-screen{
   display: flex;
 }
 
-body.scroll-mode #page4{
-  padding-bottom: 0;
-  flex-direction: column;
+.quiz-inner{
+  width: min(780px, 92vw);
+  margin: 0 auto;
+  position: relative;
+  padding: 18px 0 60px;
 }
 
-/* ---------------- MOBILE RESPONSIVE ---------------- */
-@media (max-width: 768px) {
+.quiz-back-btn{
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-bottom: 18px;
+}
 
+.quiz-title{
+  font-size: 26px;
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
+  color: #fff;
+  text-shadow: 0 1px 10px rgba(0,0,0,0.25);
+}
+
+.quiz-subtitle{
+  opacity: 0.9;
+  margin-bottom: 18px;
+  color: #fff;
+}
+
+.quiz-album{
+  opacity: 0.95;
+  letter-spacing: 1px;
+}
+
+.quiz-form{
+  display: grid;
+  gap: 14px;
+}
+
+.quiz-q{
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.18);
+}
+
+.quiz-q h3{
+  margin-bottom: 10px;
+  font-size: 15px;
+  color: #fff;
+}
+
+.quiz-name{
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.28);
+  background: rgba(0,0,0,0.15);
+  color: #fff;
+  outline: none;
+  font-size: 16px;
+}
+
+.quiz-name::placeholder{
+  color: rgba(255,255,255,0.75);
+}
+
+.quiz-q label{
+  display: block;
+  padding: 10px 10px;
+  margin: 8px 0;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.18);
+  border: 1px solid rgba(255,255,255,0.18);
+  cursor: pointer;
+  user-select: none;
+  color: rgba(255,255,255,0.95);
+}
+
+.quiz-q input[type="radio"]{
+  margin-right: 10px;
+  transform: translateY(1px);
+}
+
+.quiz-finish-btn{
+  margin-top: 4px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.24);
+  background: rgba(255,255,255,0.16);
+  color: #fff;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.quiz-finish-btn:active{ transform: scale(0.99); }
+
+.quiz-result{
+  display: none;
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(0,0,0,0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.quiz-result-inner h2{
+  font-size: 20px;
+  margin-bottom: 6px;
+  color: #fff;
+}
+
+.fade-soft{
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 700ms ease, transform 700ms ease;
+}
+.fade-soft.show{
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.result-cover{
+  width: min(360px, 86vw);
+  margin-top: 14px;
+  border-radius: 18px;
+  display: none;
+  border: 1px solid rgba(255,255,255,0.18);
+}
+
+.result-cover.show{ display:block; }
+
+.result-blurb{
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: rgba(255,255,255,0.95);
+  opacity: 0.95;
+}
+
+.quiz-result-actions{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.quiz-retry-btn,
+.quiz-close-btn{
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  cursor: pointer;
+}
+
+.quiz-overlay{
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.18), rgba(0,0,0,0.0) 60%);
+  transition: opacity 0.5s ease;
+}
+
+.quiz-overlay.on{ opacity: 1; }
+
+.quiz-teaser{
+  margin-top: 26px;
+  padding: 16px 14px;
+  border-radius: 16px;
+  background: rgba(0,0,0,0.10);
+  border: 1px solid rgba(0,0,0,0.08);
+  text-align: center;
+}
+
+.quiz-teaser-title{
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.quiz-teaser-sub{
+  font-size: 14px;
+  opacity: 0.85;
+  margin-bottom: 12px;
+}
+
+.quiz-play-btn{
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.18);
+  background: rgba(0,0,0,0.08);
+  cursor: pointer;
+}
+
+.quiz-play-btn:hover{ background: rgba(0,0,0,0.12); }
+
+/* ---------------- MOBILE ---------------- */
+@media (max-width: 768px) {
   .page {
     padding: 20px;
     min-height: 100vh;
@@ -620,8 +560,26 @@ body.scroll-mode #page4{
     padding: 26px;
   }
 
+  .game-overlay {
+    padding: 20px;
+    width: min(600px, 95vw);
+  }
+
   .big-title {
     font-size: 2.4rem;
+  }
+
+  .invite-subtitle{
+    font-size: 1.25rem;
+  }
+
+  .tdc-hint{
+    font-size: 1rem;
+  }
+
+  #tdcCanvas{
+    width: min(560px, 90vw);
+    height: min(380px, 40vh);
   }
 
   .two-column {
@@ -634,24 +592,14 @@ body.scroll-mode #page4{
     width: 100%;
   }
 
-  h1 { font-size: 1.3rem; }
-  h2 { font-size: 1.1rem; }
-  h3 { font-size: 2rem; }
+  .quiz-title{ font-size: 22px; }
+  .quiz-q{ padding: 14px; }
+  .quiz-q label{ padding: 10px; }
+}
 
-  .quiz-container {
-    padding: 25px;
-    width: 95vw;
-  }
-
-  .quiz-main-heading {
-    font-size: 1.5rem;
-  }
-
-  .result-heading {
-    font-size: 1.4rem;
-  }
-
-  .dress-code-title {
-    font-size: 1.8rem;
+@media (max-width: 480px){
+  .contact-line{
+    font-size: 16px;
+    grid-template-columns: auto 12px 1fr;
   }
 }
